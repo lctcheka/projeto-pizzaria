@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acompanhar Pedido — Império Pizza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --nero:#0d0d0d; --nero2:#161616; --nero3:#1e1e1e;
+      --borda:rgba(255,255,255,0.08);
+      --ouro:#c8922a; --ouro2:#e8b04a; --ouro-light:rgba(200,146,42,0.12);
+      --branco:#f5f0e8; --texto:#a8a09a;
+      --verde:#22c55e; --azul:#3b82f6; --laranja:#f97316;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--nero); color:var(--branco); font-family:'DM Sans',sans-serif; min-height:100vh; }
+    .page { max-width:560px; margin:0 auto; padding:40px 20px 60px; }
+    .back-link { display:inline-flex; align-items:center; gap:8px; color:var(--texto); text-decoration:none; font-size:14px; margin-bottom:32px; transition:.2s; }
+    .back-link:hover { color:var(--branco); }
+    .back-link svg { width:16px; height:16px; }
+    .brand { display:flex; align-items:center; gap:12px; margin-bottom:40px; }
+    .brand img { width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid rgba(200,146,42,0.3); }
+    .brand-name { font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:700; }
+    .brand-sub { font-size:11px; color:var(--ouro); letter-spacing:2px; text-transform:uppercase; }
+    .busca-box { background:var(--nero2); border:1px solid var(--borda); border-radius:20px; padding:28px; margin-bottom:28px; }
+    .busca-box h2 { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:700; margin-bottom:6px; }
+    .busca-box p { color:var(--texto); font-size:14px; margin-bottom:20px; }
+    .busca-input { width:100%; padding:14px 16px; background:var(--nero3); border:1px solid var(--borda); border-radius:12px; color:var(--branco); font-size:15px; outline:none; font-family:'DM Sans',sans-serif; transition:.2s; margin-bottom:12px; }
+    .busca-input:focus { border-color:rgba(200,146,42,0.5); }
+    .busca-btn { width:100%; padding:14px; background:var(--ouro); color:var(--nero); border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; transition:.2s; font-family:'DM Sans',sans-serif; }
+    .busca-btn:hover { background:var(--ouro2); }
+    .busca-erro { color:#ef4444; font-size:13px; margin-top:10px; display:none; }
+    .resultado { display:none; }
+    .pedido-resumo { background:var(--nero2); border:1px solid var(--borda); border-radius:20px; padding:24px; margin-bottom:20px; }
+    .resumo-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+    .resumo-id { font-size:12px; color:var(--texto); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px; }
+    .resumo-nome { font-size:20px; font-weight:600; }
+    .resumo-total { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:700; color:var(--ouro2); }
+    .tracker { margin-bottom:24px; }
+    .tracker-title { font-size:13px; color:var(--texto); letter-spacing:1px; text-transform:uppercase; margin-bottom:20px; }
+    .steps { position:relative; padding-left:36px; }
+    .step { position:relative; padding-bottom:28px; }
+    .step:last-child { padding-bottom:0; }
+    .step-line { position:absolute; left:-24px; top:16px; width:2px; height:calc(100% - 8px); background:var(--borda); }
+    .step:last-child .step-line { display:none; }
+    .step-line.done { background:var(--verde); }
+    .step-line.active { background:linear-gradient(to bottom, var(--verde), var(--borda)); }
+    .step-dot { position:absolute; left:-32px; top:2px; width:18px; height:18px; border-radius:50%; border:2px solid var(--borda); background:var(--nero2); display:flex; align-items:center; justify-content:center; transition:.3s; }
+    .step-dot.done { border-color:var(--verde); background:rgba(34,197,94,0.15); }
+    .step-dot.active { border-color:var(--ouro); background:var(--ouro-light); animation:pulseDot 2s infinite; }
+    .step-dot.done svg, .step-dot.active svg { display:block; }
+    @keyframes pulseDot { 0%,100%{box-shadow:0 0 0 0 rgba(200,146,42,0.4)} 50%{box-shadow:0 0 0 6px rgba(200,146,42,0)} }
+    .step-label { font-size:15px; font-weight:600; color:var(--texto); margin-bottom:3px; transition:.3s; }
+    .step-label.done { color:var(--verde); }
+    .step-label.active { color:var(--branco); }
+    .step-sub { font-size:13px; color:var(--texto); }
+    .step-time { font-size:12px; color:var(--ouro2); margin-top:2px; }
+    .itens-list { border-top:1px solid var(--borda); padding-top:16px; }
+    .item-row { display:flex; justify-content:space-between; font-size:14px; color:var(--branco2); padding:4px 0; }
+    .item-row.total { font-weight:600; color:var(--branco); padding-top:12px; margin-top:8px; border-top:1px solid var(--borda); }
+    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
+    .info-item { background:var(--nero3); border-radius:10px; padding:12px 14px; }
+    .info-label { font-size:11px; color:var(--texto); letter-spacing:1px; text-transform:uppercase; margin-bottom:3px; }
+    .info-value { font-size:13px; color:var(--branco); font-weight:500; }
+    .cancelado-box { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:14px; padding:20px; text-align:center; margin-bottom:16px; }
+    .cancelado-box h3 { color:#f87171; font-size:18px; margin-bottom:6px; }
+    .cancelado-box p { color:var(--texto); font-size:14px; }
+    .att-info { text-align:center; font-size:12px; color:var(--texto); margin-top:16px; }
+    .att-info span { color:var(--ouro2); }
+    /* =====================
+   ACOMPANHAR PEDIDO — MOBILE RESPONSIVE
+   Adicione estas regras ao final do <style> do acompanhar.html
+===================== */
+
+@media (max-width: 480px) {
+  /* ===== PAGE CONTAINER ===== */
+  .page {
+    padding: 24px 16px 48px;
+  }
+
+  /* ===== BRAND ===== */
+  .brand { margin-bottom: 28px; }
+  .brand img { width: 40px; height: 40px; }
+  .brand-name { font-size: 19px; }
+  .brand-sub { font-size: 10px; }
+
+  /* ===== BUSCA BOX ===== */
+  .busca-box {
+    padding: 20px 16px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+
+  .busca-box h2 { font-size: 22px; }
+  .busca-box p { font-size: 13px; margin-bottom: 16px; }
+
+  .busca-input {
+    padding: 12px 14px;
+    font-size: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+
+  .busca-btn {
+    padding: 13px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  /* ===== PEDIDO RESUMO ===== */
+  .pedido-resumo {
+    padding: 18px 16px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* ===== RESUMO HEADER ===== */
+  .resumo-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .resumo-id { font-size: 10px; }
+  .resumo-nome { font-size: 17px; }
+  .resumo-total { font-size: 26px; }
+
+  /* ===== TRACKER ===== */
+  .tracker { margin-bottom: 20px; }
+  .tracker-title { font-size: 11px; margin-bottom: 16px; }
+
+  .steps { padding-left: 30px; }
+
+  .step { padding-bottom: 22px; }
+
+  .step-line { left: -20px; }
+  .step-dot { left: -27px; width: 16px; height: 16px; }
+
+  .step-label { font-size: 14px; }
+  .step-sub { font-size: 12px; }
+  .step-time { font-size: 11px; }
+
+  /* ===== ITENS LIST ===== */
+  .itens-list { padding-top: 14px; }
+
+  .item-row { font-size: 13px; padding: 5px 0; }
+  .item-row.total { font-size: 14px; }
+
+  /* ===== INFO GRID ===== */
+  .info-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .info-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+
+  .info-label { font-size: 9px; }
+  .info-value { font-size: 12px; }
+
+  /* ===== CANCELADO BOX ===== */
+  .cancelado-box {
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+
+  .cancelado-box h3 { font-size: 16px; margin-bottom: 5px; }
+  .cancelado-box p { font-size: 13px; }
+
+  /* ===== ATT INFO ===== */
+  .att-info { font-size: 11px; margin-top: 14px; }
+
+  /* ===== BACK LINK ===== */
+  .back-link { font-size: 13px; margin-bottom: 24px; }
+}
+
+/* ===== EXTRA PEQUENO (320px) ===== */
+@media (max-width: 360px) {
+  .info-grid { grid-template-columns: 1fr; }
+  .resumo-total { font-size: 24px; }
+  .busca-box h2 { font-size: 20px; }
+}
+
+
+
+    /* ETA badge */
+    .eta-box { background:rgba(200,146,42,.08); border:1px solid rgba(200,146,42,.2); border-radius:14px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:14px; }
+    .eta-icon { font-size:28px; flex-shrink:0; }
+    .eta-titulo { font-size:13px; color:var(--texto); margin-bottom:4px; }
+    .eta-valor { font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:700; color:var(--ouro2); }
+    .eta-sub { font-size:12px; color:var(--texto); margin-top:2px; }
+    /* Avaliação */
+    .aval-box { background:var(--nero2); border:1px solid var(--borda); border-radius:20px; padding:28px; margin-bottom:20px; }
+    .aval-box h2 { font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:700; margin-bottom:6px; }
+    .aval-box p { color:var(--texto); font-size:14px; margin-bottom:20px; }
+    .stars-row { display:flex; gap:12px; justify-content:center; margin-bottom:20px; }
+    .star-btn { font-size:36px; cursor:pointer; transition:.15s; background:none; border:none; padding:4px; opacity:.4; }
+    .star-btn.active, .star-btn:hover { opacity:1; transform:scale(1.15); }
+    .aval-textarea { width:100%; padding:12px 14px; background:var(--nero3); border:1px solid var(--borda); border-radius:12px; color:var(--branco); font-size:14px; outline:none; font-family:'DM Sans',sans-serif; min-height:90px; resize:vertical; margin-bottom:14px; transition:.2s; }
+    .aval-textarea:focus { border-color:rgba(200,146,42,.5); }
+    .aval-btn { width:100%; padding:13px; background:var(--ouro); color:var(--nero); border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:.2s; }
+    .aval-btn:hover { background:var(--ouro2); }
+    .aval-sucesso { text-align:center; padding:20px; }
+    .aval-sucesso .emoji { font-size:48px; display:block; margin-bottom:12px; }
+    .aval-sucesso h3 { font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:700; margin-bottom:6px; }
+    .aval-sucesso p { color:var(--texto); font-size:14px; }
+
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="index.html" class="back-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    Voltar ao site
+  </a>
+  <div class="brand">
+    <img src="https://i.ibb.co/kgtkmGVD/Green-and-Blue-Minimalist-People-Tree-Logo-1.png" alt="Império Pizza">
+    <div>
+      <div class="brand-name">Império Pizza</div>
+      <div class="brand-sub">Acompanhar Pedido</div>
+    </div>
+  </div>
+  <div class="busca-box" id="buscaBox">
+    <h2>Acompanhe seu pedido</h2>
+    <p>Digite o número do seu pedido para ver o status em tempo real.</p>
+    <input type="text" class="busca-input" id="inputPedido" placeholder="Ex: PED-123456" onkeydown="if(event.key==='Enter')buscarPedido()">
+    <button class="busca-btn" onclick="buscarPedido()">Buscar Pedido</button>
+    <div class="busca-erro" id="buscaErro">Pedido não encontrado. Verifique o número e tente novamente.</div>
+  </div>
+  <div class="resultado" id="resultado"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, onSnapshot, getDoc, setDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCpXGhF1jQc5kK5thqOFo1PiOsNFIQe020",
+  authDomain: "imperio-pizza-80342.firebaseapp.com",
+  projectId: "imperio-pizza-80342",
+  storageBucket: "imperio-pizza-80342.firebasestorage.app",
+  messagingSenderId: "1064542560393",
+  appId: "1:1064542560393:web:0550fa8446780132bce658"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const STEPS = [
+  { key:'aguardando', label:'Pedido Recebido',   sub:'Aguardando confirmação da pizzaria', icon:'clock' },
+  { key:'producao',   label:'Em Produção',        sub:'Sua pizza está sendo preparada com carinho', icon:'fire' },
+  { key:'entrega',    label:'Saiu para Entrega',  sub:'O entregador está a caminho', icon:'bike' },
+  { key:'entregue',   label:'Entregue!',          sub:'Bom apetite!', icon:'check' },
+];
+const ORDER = ['aguardando','producao','entrega','entregue'];
+
+let unsubPedido = null;
+
+window.buscarPedido = async function() {
+  const id = document.getElementById('inputPedido').value.trim().toUpperCase();
+  if (!id) return;
+  document.getElementById('buscaErro').style.display = 'none';
+  if (unsubPedido) unsubPedido();
+  const cfg = await carregarConfigLoja();
+  unsubPedido = onSnapshot(doc(db, 'pedidos', id), snap => {
+    if (!snap.exists()) {
+      document.getElementById('buscaErro').style.display = 'block';
+      document.getElementById('resultado').style.display = 'none';
+      return;
+    }
+    document.getElementById('buscaErro').style.display = 'none';
+    mostrarPedido(snap.data(), cfg);
+  });
+};
+
+function calcETA(p, configLoja) {
+  // Calculate estimated time remaining
+  const tempoStr = (configLoja && configLoja.tempoEstimado) ? configLoja.tempoEstimado : '30-50 minutos';
+  if (p.status === 'entregue' || p.status === 'cancelado') return null;
+  const agora = Date.now();
+  const inicio = p.criadoEm || agora;
+  const decorrido = Math.round((agora - inicio) / 60000);
+  // Parse range like "30-50" or single "45"
+  const match = tempoStr.match(/(\d+)(?:\s*-\s*(\d+))?/);
+  if (!match) return { texto: tempoStr, decorrido };
+  const min = parseInt(match[1]);
+  const max = match[2] ? parseInt(match[2]) : min;
+  const restMin = Math.max(0, min - decorrido);
+  const restMax = Math.max(0, max - decorrido);
+  if (restMin === 0 && restMax === 0) return { texto: 'A qualquer momento!', decorrido, urgente: true };
+  return { texto: restMax > 0 ? `${restMin}-${restMax} min` : `${restMin} min`, decorrido };
+}
+
+let configLojaCache = null;
+
+async function carregarConfigLoja() {
+  if (configLojaCache) return configLojaCache;
+  try {
+    const snap = await getDoc(doc(db, 'config', 'loja'));
+    configLojaCache = snap.exists() ? snap.data() : {};
+  } catch(e) { configLojaCache = {}; }
+  return configLojaCache;
+}
+
+function mostrarPedido(p, configLoja) {
+  const res = document.getElementById('resultado');
+  res.style.display = 'block';
+  const currentIdx = ORDER.indexOf(p.status);
+  const cancelado = p.status === 'cancelado';
+  const eta = calcETA(p, configLoja);
+
+  const stepsHTML = cancelado ? '' : STEPS.map((s, i) => {
+    const done = i < currentIdx;
+    const active = i === currentIdx;
+    const cls = done ? 'done' : active ? 'active' : '';
+    const iconSVG = {
+      clock: `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+      fire:  `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2c0 6-6 8-6 13a6 6 0 0012 0c0-5-6-7-6-13z"/></svg>`,
+      bike:  `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M12 17V7l-4 4h8"/></svg>`,
+      check: `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`,
+    }[s.icon];
+    return `
+      <div class="step">
+        <div class="step-line ${done?'done':active?'active':''}"></div>
+        <div class="step-dot ${cls}" style="color:${done?'#22c55e':active?'var(--ouro)':'var(--texto)'}">
+          ${done||active ? iconSVG : ''}
+        </div>
+        <div class="step-content">
+          <div class="step-label ${cls}">${s.label}</div>
+          <div class="step-sub">${active ? `<strong style="color:var(--branco)">${s.sub}</strong>` : s.sub}</div>
+          ${active ? `<div class="step-time">Atualizado agora</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Build ETA box
+  let etaHTML = '';
+  if (eta && !cancelado) {
+    const urgente = eta.urgente;
+    etaHTML = `
+    <div class="eta-box">
+      <div class="eta-icon">${urgente ? '🔔' : '⏱'}</div>
+      <div>
+        <div class="eta-titulo">${urgente ? 'Chegando agora!' : 'Tempo estimado restante'}</div>
+        <div class="eta-valor">${eta.texto}</div>
+        <div class="eta-sub">${eta.decorrido} min desde o pedido</div>
+      </div>
+    </div>`;
+  }
+
+  res.innerHTML = etaHTML + `
+    <div class="pedido-resumo">
+      ${cancelado ? `<div class="cancelado-box"><h3>Pedido Cancelado</h3><p>Seu pedido foi cancelado. Entre em contato pelo WhatsApp para mais informações.</p></div>` : ''}
+      <div class="resumo-header">
+        <div>
+          <div class="resumo-id">#${p.id}</div>
+          <div class="resumo-nome">${p.nome}</div>
+        </div>
+        <div class="resumo-total">R$ ${p.total}</div>
+      </div>
+      ${!cancelado ? `<div class="tracker"><div class="tracker-title">Acompanhamento</div><div class="steps">${stepsHTML}</div></div>` : ''}
+      <div class="itens-list">
+        ${p.itens.map(it=>`<div class="item-row"><span>${it.qty}x ${it.nome}</span><span>R$ ${it.total}</span></div>`).join('')}
+        <div class="item-row"><span>Entrega</span><span>R$ ${Number(p.taxaEntrega || (configLoja && configLoja.taxaEntrega) || 5).toFixed(2).replace('.',',')}</span></div>
+        <div class="item-row total"><span>Total</span><span>R$ ${(() => { const taxa = Number(p.taxaEntrega || (configLoja && configLoja.taxaEntrega) || 5); const sub = p.itens.reduce((s,i)=>s+parseFloat(i.total.replace(',','.')),0); return (sub+taxa).toFixed(2).replace('.',','); })()}</span></div>
+      </div>
+      <div class="info-grid">
+        <div class="info-item"><div class="info-label">Endereço</div><div class="info-value">${p.endereco}</div></div>
+        <div class="info-item"><div class="info-label">Bairro</div><div class="info-value">${p.bairro}</div></div>
+        <div class="info-item"><div class="info-label">Pagamento</div><div class="info-value">${p.pagamento}</div></div>
+        <div class="info-item"><div class="info-label">Horário</div><div class="info-value">${new Date(p.criadoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>
+      </div>
+    </div>
+    <div class="att-info">Atualizando em <span>tempo real</span></div>
+  `;
+  // Show avaliação section if param present and status is entregue
+  if (p.status === 'entregue' && new URLSearchParams(location.search).get('aval') === '1') {
+    mostrarFormAvaliacao(p);
+  }
+}
+
+// Formulário de avaliação
+let notaSelecionada = 0;
+function mostrarFormAvaliacao(p) {
+  const avalDiv = document.createElement('div');
+  avalDiv.id = 'avalBox';
+  avalDiv.className = 'aval-box';
+  avalDiv.innerHTML = `
+    <div id="avalConteudo">
+      <h2>Como foi sua experiência?</h2>
+      <p>Sua opinião nos ajuda a melhorar. Leva só 10 segundos!</p>
+      <div class="stars-row" id="starsRow">
+        ${[1,2,3,4,5].map(n=>`<button class="star-btn" data-nota="${n}" onclick="selecionarEstrela(${n})">⭐</button>`).join('')}
+      </div>
+      <textarea class="aval-textarea" id="avalComentario" placeholder="Deixe um comentário (opcional)..."></textarea>
+      <button class="aval-btn" onclick="enviarAvaliacao('${p.id}','${p.nome}')">Enviar Avaliação</button>
+    </div>
+  `;
+  document.getElementById('resultado').after(avalDiv);
+}
+
+window.selecionarEstrela = function(n) {
+  notaSelecionada = n;
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i < n);
+  });
+};
+
+window.enviarAvaliacao = async function(pedidoId, nome) {
+  if (!notaSelecionada) { alert('Selecione uma nota!'); return; }
+  const comentario = document.getElementById('avalComentario').value.trim();
+  try {
+    await setDoc(doc(db, 'avaliacoes', pedidoId), {
+      nota: notaSelecionada,
+      comentario,
+      nome,
+      pedidoId,
+      criadoEm: Date.now()
+    });
+    document.getElementById('avalConteudo').innerHTML = `
+      <div class="aval-sucesso">
+        <span class="emoji">🙏</span>
+        <h3>Obrigado pelo feedback!</h3>
+        <p>Sua avaliação foi registrada com sucesso.</p>
+      </div>`;
+  } catch(e) { alert('Erro ao enviar avaliação. Tente novamente.'); }
+};
+
+// Auto-busca por URL param
+const params = new URLSearchParams(location.search);
+if (params.get('id')) {
+  document.getElementById('inputPedido').value = params.get('id');
+  window.buscarPedido();
+}
+</script>
+</body>
+</html>
